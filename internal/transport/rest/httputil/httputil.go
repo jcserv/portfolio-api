@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/jcserv/go-api-template/internal/utils/log"
+	"github.com/jcserv/portfolio-api/internal/utils/log"
 )
 
 type HTTPError struct {

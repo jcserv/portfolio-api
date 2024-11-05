@@ -1,4 +1,4 @@
-module github.com/jcserv/go-api-template
+module github.com/jcserv/portfolio-api
 
 go 1.21.5
 

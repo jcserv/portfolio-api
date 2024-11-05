@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"github.com/jcserv/go-api-template/internal/utils/env"
+	"github.com/jcserv/portfolio-api/internal/utils/env"
 )
 
 type Configuration struct {

@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/jcserv/go-api-template/internal/transport/rest/httputil"
-	v1 "github.com/jcserv/go-api-template/internal/transport/rest/v1"
+	"github.com/jcserv/portfolio-api/internal/transport/rest/httputil"
+	v1 "github.com/jcserv/portfolio-api/internal/transport/rest/v1"
 )
 
 const (

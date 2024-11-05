@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/jcserv/go-api-template/internal"
-	"github.com/jcserv/go-api-template/internal/utils/log"
+	"github.com/jcserv/portfolio-api/internal"
+	"github.com/jcserv/portfolio-api/internal/utils/log"
 	"go.uber.org/zap"
 )
 

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/jcserv/go-api-template/internal/utils/log"
+	"github.com/jcserv/portfolio-api/internal/utils/log"
 )
 
 func LogIncomingRequests() mux.MiddlewareFunc {

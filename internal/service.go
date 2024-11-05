@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/jcserv/go-api-template/internal/transport/rest"
-	"github.com/jcserv/go-api-template/internal/utils/log"
+	"github.com/jcserv/portfolio-api/internal/transport/rest"
+	"github.com/jcserv/portfolio-api/internal/utils/log"
 )
 
 type Service struct {

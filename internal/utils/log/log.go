@@ -3,7 +3,7 @@ package log
 import (
 	"context"
 
-	"github.com/jcserv/go-api-template/internal/utils/env"
+	"github.com/jcserv/portfolio-api/internal/utils/env"
 	"go.uber.org/zap"
 )
 
