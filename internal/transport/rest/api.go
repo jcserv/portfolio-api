@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/jcserv/portfolio-api/internal/rag"
 	"github.com/jcserv/portfolio-api/internal/transport/rest/httputil"
 	v1 "github.com/jcserv/portfolio-api/internal/transport/rest/v1"
 )
@@ -16,9 +17,9 @@ type API struct {
 	V1API *v1.API
 }
 
-func NewAPI() *API {
+func NewAPI(ragService *rag.Service) *API {
 	return &API{
-		V1API: v1.NewAPI(),
+		V1API: v1.NewAPI(ragService),
 	}
 }
 

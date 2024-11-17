@@ -13,8 +13,11 @@ services:
       - REGION=${REGION}
       - ENVIRONMENT=${ENVIRONMENT}
       - PORT=${PORT}
+      - DB_PATH=${DB_PATH}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     networks:
       - backend
+
 networks:
   backend:
     driver: bridge

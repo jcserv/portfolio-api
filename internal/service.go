@@ -6,7 +6,10 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/jcserv/portfolio-api/internal/db"
+	"github.com/jcserv/portfolio-api/internal/rag"
 	"github.com/jcserv/portfolio-api/internal/transport/rest"
+	"github.com/jcserv/portfolio-api/internal/utils"
 	"github.com/jcserv/portfolio-api/internal/utils/log"
 )
 
@@ -21,8 +24,26 @@ func NewService() (*Service, error) {
 		return nil, err
 	}
 
+	db, err := db.NewLibSQL(context.Background(), cfg.DBPath)
+	if err != nil {
+		return nil, err
+	}
+
+	ragEmbedder := rag.NewEmbedder(cfg.OpenAIKey)
+	ragService := rag.NewService(db, ragEmbedder)
+
+	exp, err := utils.ReadExperience()
+	if err != nil {
+		return nil, err
+	}
+
+	err = ragService.IndexExperience(context.Background(), exp)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &Service{
-		api: rest.NewAPI(),
+		api: rest.NewAPI(ragService),
 		cfg: cfg,
 	}
 	return s, nil
