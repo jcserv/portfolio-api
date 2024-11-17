@@ -1,5 +1,7 @@
 # portfolio-api
 
+![visitors](https://img.shields.io/endpoint?url=https://vu-mi.com/api/v1/views?id=jcserv/portfolio-api)
+
 `portfolio-api` is a retrieval augmented generation API to allow users to ask questions about the content in a developer portfolio.
 
 Intended to be integrated into a portfolio website.
