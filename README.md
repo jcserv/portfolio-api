@@ -1,9 +1,20 @@
 # portfolio-api
 
-TODO:
-- import projects as embeddings
-- Deployment
-  - If lambdas: change to a central DB storage instead of sqlite
-  - options: cloudflare workers, aws
-- on startup: only init indices if they don't exist already
+# Installation
+
+## Prerequisites
+- [Go](https://go.dev/doc/install)
+- [Docker](https://docs.docker.com/get-docker/)
+- [TinyGo](https://tinygo.org/getting-started/install/)
+- [Wrangler](https://developers.cloudflare.com/workers/wrangler/install/)
+
+## Local Development
+
+1. Clone the repository
+2. Initialize .env file with the respective variables
+3. Run `source <(make exportenv)`
+4. Run `make run/docker`
+```
+
+# TODO
 - abuse controls: backdoor prompts, asking unrelated questions
