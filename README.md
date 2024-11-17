@@ -1,6 +1,6 @@
 # portfolio-api
 
-`portfolio-api` is a retrieval augmented generation API that provides a simple interface for users to ask questions about a user's professional experience.
+`portfolio-api` is a retrieval augmented generation API to allow users to ask questions about the content in a developer portfolio.
 
 Intended to be integrated into a portfolio website.
 
