@@ -3,12 +3,13 @@ package db
 import (
 	"context"
 	"database/sql"
+	"math"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/jcserv/portfolio-api/internal/utils"
 	"github.com/pkg/errors"
-
 	_ "modernc.org/sqlite"
 )
 
@@ -57,77 +58,6 @@ func (l *LibSQL) CreateEmbeddingsTable(ctx context.Context, db *sql.DB) error {
 	return err
 }
 
-func (l *LibSQL) CreateCosineSimilarityFunc(ctx context.Context) error {
-	// Create helper function to compute dot product of JSON arrays
-	_, err := l.db.ExecContext(ctx, `
-		CREATE FUNCTION IF NOT EXISTS json_dot_product(vec1 TEXT, vec2 TEXT) 
-		RETURNS REAL AS $$
-			WITH 
-			a AS (SELECT json_each.value AS x FROM json_each(vec1)),
-			b AS (SELECT json_each.value AS y FROM json_each(vec2))
-			SELECT COALESCE(SUM(x * y), 0.0)
-			FROM a JOIN b ON rowid = rowid;
-		$$ LANGUAGE SQL;
-	`)
-	if err != nil {
-		return errors.Wrap(err, "failed to create dot product function")
-	}
-
-	// Create helper function to compute vector magnitude of JSON array
-	_, err = l.db.ExecContext(ctx, `
-		CREATE FUNCTION IF NOT EXISTS json_magnitude(vec TEXT) 
-		RETURNS REAL AS $$
-			WITH a AS (
-				SELECT json_each.value * json_each.value AS squared 
-				FROM json_each(vec)
-			)
-			SELECT SQRT(COALESCE(SUM(squared), 0.0))
-			FROM a;
-		$$ LANGUAGE SQL;
-	`)
-	if err != nil {
-		return errors.Wrap(err, "failed to create magnitude function")
-	}
-
-	// Create the main cosine similarity function
-	_, err = l.db.ExecContext(ctx, `
-		CREATE FUNCTION IF NOT EXISTS cosine_similarity(vec1 TEXT, vec2 TEXT) 
-		RETURNS REAL AS $$
-			WITH similarity AS (
-				SELECT 
-					json_dot_product(vec1, vec2) as dot_prod,
-					json_magnitude(vec1) as mag1,
-					json_magnitude(vec2) as mag2
-			)
-			SELECT 
-				CASE 
-					WHEN mag1 = 0 OR mag2 = 0 THEN 0
-					ELSE dot_prod / (mag1 * mag2)
-				END
-			FROM similarity;
-		$$ LANGUAGE SQL;
-	`)
-	if err != nil {
-		return errors.Wrap(err, "failed to create cosine similarity function")
-	}
-
-	// Create an optional helper function to convert arrays to JSON if needed
-	_, err = l.db.ExecContext(ctx, `
-		CREATE FUNCTION IF NOT EXISTS array_to_json(arr TEXT) 
-		RETURNS TEXT AS $$
-			SELECT CASE 
-				WHEN arr LIKE '[%]' THEN arr  -- Already JSON
-				ELSE '[' || arr || ']'        -- Convert comma-separated to JSON
-			END;
-		$$ LANGUAGE SQL;
-	`)
-	if err != nil {
-		return errors.Wrap(err, "failed to create array conversion function")
-	}
-
-	return nil
-}
-
 func (l *LibSQL) Close() error {
 	return l.db.Close()
 }
@@ -143,26 +73,70 @@ func (l *LibSQL) StoreEmbedding(ctx context.Context, text string, embedding []fl
 }
 
 func (l *LibSQL) FindSimilar(ctx context.Context, queryEmbedding []float32, limit int) ([]string, error) {
-	queryBytes := utils.Float32SliceToBytes(queryEmbedding)
-
 	rows, err := l.db.QueryContext(ctx, `
-		SELECT text, category 
-		FROM embeddings 
-		ORDER BY cosine_similarity_blob(embedding_blob, ?) DESC 
-		LIMIT ?
-	`, queryBytes, limit)
+        SELECT text, category, embedding_blob 
+        FROM embeddings
+    `)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to query similar embeddings")
+		return nil, errors.Wrap(err, "failed to query embeddings")
 	}
 	defer rows.Close()
 
-	var results []string
+	// Store results with their similarities for sorting
+	type Result struct {
+		Text       string
+		Similarity float64
+	}
+	var results []Result
+
+	// Calculate similarity for each embedding
 	for rows.Next() {
 		var text, category string
-		if err := rows.Scan(&text, &category); err != nil {
+		var embeddingBlob []byte
+		if err := rows.Scan(&text, &category, &embeddingBlob); err != nil {
 			return nil, errors.Wrap(err, "failed to scan row")
 		}
-		results = append(results, text)
+
+		embedding := utils.BytesToFloat32Slice(embeddingBlob)
+		similarity := calculateCosineSimilarity(queryEmbedding, embedding)
+
+		results = append(results, Result{
+			Text:       text,
+			Similarity: similarity,
+		})
 	}
-	return results, nil
+
+	// Sort results by similarity (highest first)
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Similarity > results[j].Similarity
+	})
+
+	// Take top N results
+	var texts []string
+	for i := 0; i < limit && i < len(results); i++ {
+		texts = append(texts, results[i].Text)
+	}
+
+	return texts, nil
+}
+
+func calculateCosineSimilarity(vec1, vec2 []float32) float64 {
+	if len(vec1) != len(vec2) {
+		return 0
+	}
+
+	var dotProduct, magnitude1, magnitude2 float64
+	for i := 0; i < len(vec1); i++ {
+		v1 := float64(vec1[i])
+		v2 := float64(vec2[i])
+		dotProduct += v1 * v2
+		magnitude1 += v1 * v1
+		magnitude2 += v2 * v2
+	}
+
+	if magnitude1 == 0 || magnitude2 == 0 {
+		return 0
+	}
+
+	return dotProduct / (math.Sqrt(magnitude1) * math.Sqrt(magnitude2))
 }
