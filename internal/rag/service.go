@@ -33,6 +33,15 @@ func (s *Service) IndexExperience(ctx context.Context, experiences []model.Exper
 			text += "- " + desc + "\n"
 		}
 
+		exists, err := s.db.DoesEmbeddingExist(ctx, text)
+		if err != nil {
+			log.Error(ctx, fmt.Sprintf("unable to check if embedding exists: %v", err))
+			continue
+		}
+		if exists {
+			continue
+		}
+
 		embedding, err := s.embedder.GetEmbedding(ctx, text)
 		if err != nil {
 			return err
@@ -46,14 +55,11 @@ func (s *Service) IndexExperience(ctx context.Context, experiences []model.Exper
 }
 
 func (s *Service) Answer(ctx context.Context, question string) (string, error) {
-	log.Info(ctx, fmt.Sprintf("generating embedding for question: %s", question))
-
 	questionEmbedding, err := s.embedder.GetEmbedding(ctx, question)
 	if err != nil {
 		return "", err
 	}
 
-	log.Info(ctx, "finding similar embeddings")
 	relevant, err := s.db.FindSimilar(ctx, questionEmbedding, 3)
 	if err != nil {
 		return "", err
@@ -82,6 +88,5 @@ func (s *Service) Answer(ctx context.Context, question string) (string, error) {
 		return "", err
 	}
 
-	log.Info(ctx, fmt.Sprintf("generated completion: %v", completion))
 	return completion.Choices[0].Message.Content, nil
 }

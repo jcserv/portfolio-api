@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -51,6 +52,7 @@ func (l *LibSQL) CreateEmbeddingsTable(ctx context.Context, db *sql.DB) error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			text TEXT NOT NULL,
 			embedding_blob BLOB NOT NULL,
+			content_hash CHAR(64) NOT NULL,
 			category TEXT NOT NULL,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)
@@ -62,12 +64,25 @@ func (l *LibSQL) Close() error {
 	return l.db.Close()
 }
 
+func (l *LibSQL) DoesEmbeddingExist(ctx context.Context, text string) (bool, error) {
+	hash := utils.HashContent(text)
+
+	query := `SELECT EXISTS(SELECT 1 FROM embeddings WHERE content_hash = $1)`
+
+	var exists bool
+	err := l.db.QueryRowContext(ctx, query, string(hash)).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("checking content hash: %w", err)
+	}
+	return exists, nil
+}
+
 func (l *LibSQL) StoreEmbedding(ctx context.Context, text string, embedding []float32, category string) error {
 	byteSlice := utils.Float32SliceToBytes(embedding)
-
+	hash := utils.HashContent(text)
 	_, err := l.db.ExecContext(ctx,
-		"INSERT INTO embeddings (text, embedding_blob, category) VALUES (?, ?, ?)",
-		text, byteSlice, category,
+		"INSERT INTO embeddings (text, embedding_blob, content_hash, category) VALUES (?, ?,?, ?)",
+		text, byteSlice, hash, category,
 	)
 	return errors.Wrap(err, "failed to store embedding")
 }

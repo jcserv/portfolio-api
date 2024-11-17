@@ -2,12 +2,10 @@ package openai
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/jcserv/portfolio-api/internal/utils/log"
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 )
@@ -87,19 +85,14 @@ func (c *Client) CreateEmbedding(ctx context.Context, request openai.EmbeddingRe
 			tokensNeeded += len(text) / 4 // Rough estimate: 4 chars per token
 		}
 	}
-	log.Info(ctx, fmt.Sprintf("tokens needed: %d", tokensNeeded))
-
 	operation := func() error {
 		if err := c.waitForCapacity(ctx, tokensNeeded); err != nil {
 			return backoff.Permanent(err)
 		}
-		log.Info(ctx, "creating embeddings")
-		log.Info(ctx, fmt.Sprintf("rate limits: %v", c.rateLimits))
 		resp, err := c.client.CreateEmbeddings(ctx, request)
 		if err != nil {
 			if apiErr, ok := err.(*openai.APIError); ok {
 				headers := resp.GetRateLimitHeaders()
-				log.Info(ctx, fmt.Sprintf("apiErr: %v", apiErr))
 				c.updateRateLimits(headers)
 				if apiErr.HTTPStatusCode == 429 {
 					return err
@@ -111,7 +104,6 @@ func (c *Client) CreateEmbedding(ctx context.Context, request openai.EmbeddingRe
 
 		// Update rate limits from successful response
 		headers := resp.GetRateLimitHeaders()
-		log.Info(ctx, fmt.Sprintf("headers: %v", headers))
 		c.updateRateLimits(headers)
 		response = resp
 		return nil
@@ -150,7 +142,6 @@ func (c *Client) CreateChatCompletion(ctx context.Context, request openai.ChatCo
 			return backoff.Permanent(err)
 		}
 
-		log.Info(ctx, "prompting for chat completion")
 		resp, err := c.client.CreateChatCompletion(ctx, request)
 		if err != nil {
 			if apiErr, ok := err.(*openai.APIError); ok {
