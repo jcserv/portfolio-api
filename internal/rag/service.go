@@ -2,9 +2,11 @@ package rag
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jcserv/portfolio-api/internal/db"
 	"github.com/jcserv/portfolio-api/internal/model"
+	"github.com/jcserv/portfolio-api/internal/utils/log"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -44,11 +46,14 @@ func (s *Service) IndexExperience(ctx context.Context, experiences []model.Exper
 }
 
 func (s *Service) Answer(ctx context.Context, question string) (string, error) {
+	log.Info(ctx, fmt.Sprintf("generating embedding for question: %s", question))
+
 	questionEmbedding, err := s.embedder.GetEmbedding(ctx, question)
 	if err != nil {
 		return "", err
 	}
 
+	log.Info(ctx, "finding similar embeddings")
 	relevant, err := s.db.FindSimilar(ctx, questionEmbedding, 3)
 	if err != nil {
 		return "", err
@@ -59,8 +64,8 @@ func (s *Service) Answer(ctx context.Context, question string) (string, error) {
 		prompt += exp + "\n\n"
 	}
 
-	completion, err := s.embedder.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: openai.GPT4,
+	completion, err := s.embedder.OpenAIClient.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: openai.GPT3Dot5Turbo,
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
@@ -77,5 +82,6 @@ func (s *Service) Answer(ctx context.Context, question string) (string, error) {
 		return "", err
 	}
 
+	log.Info(ctx, fmt.Sprintf("generated completion: %v", completion))
 	return completion.Choices[0].Message.Content, nil
 }

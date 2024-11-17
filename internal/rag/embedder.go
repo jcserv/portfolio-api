@@ -3,22 +3,23 @@ package rag
 import (
 	"context"
 
+	oAI "github.com/jcserv/portfolio-api/internal/api/openai"
 	"github.com/sashabaranov/go-openai"
 )
 
 type Embedder struct {
-	client *openai.Client
+	OpenAIClient *oAI.Client
 }
 
-func NewEmbedder(apiKey string) *Embedder {
+func NewEmbedder(OpenAIClient *oAI.Client) *Embedder {
 	return &Embedder{
-		client: openai.NewClient(apiKey),
+		OpenAIClient: OpenAIClient,
 	}
 }
 
 func (e *Embedder) GetEmbedding(ctx context.Context, text string) ([]float32, error) {
-	resp, err := e.client.CreateEmbeddings(ctx, openai.EmbeddingRequest{
-		Model: openai.AdaEmbeddingV2,
+	resp, err := e.OpenAIClient.CreateEmbedding(ctx, openai.EmbeddingRequest{
+		Model: openai.SmallEmbedding3,
 		Input: []string{text},
 	})
 	if err != nil {

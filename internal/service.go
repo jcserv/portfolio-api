@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/jcserv/portfolio-api/internal/api/openai"
 	"github.com/jcserv/portfolio-api/internal/db"
 	"github.com/jcserv/portfolio-api/internal/rag"
 	"github.com/jcserv/portfolio-api/internal/transport/rest"
@@ -29,7 +30,9 @@ func NewService() (*Service, error) {
 		return nil, err
 	}
 
-	ragEmbedder := rag.NewEmbedder(cfg.OpenAIKey)
+	openAIClient := openai.NewClient(cfg.OpenAIKey)
+
+	ragEmbedder := rag.NewEmbedder(openAIClient)
 	ragService := rag.NewService(db, ragEmbedder)
 
 	exp, err := utils.ReadExperience()

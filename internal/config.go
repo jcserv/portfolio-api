@@ -19,7 +19,7 @@ func NewConfiguration() (*Configuration, error) {
 	cfg.Region = env.GetString("REGION", "us-east-1")
 	cfg.Environment = env.GetString("ENVIRONMENT", "prod")
 	cfg.HTTPPort = env.GetString("HTTP_PORT", "8080")
-	cfg.DBPath = env.GetString("DB_PATH", "./db/portfolio-api.db")
+	cfg.DBPath = env.GetString("DB_PATH", "./internal/db/portfolio-api.db")
 	cfg.OpenAIKey = env.GetString("OPENAI_API_KEY", "")
 
 	if err := cfg.Validate(); err != nil {
