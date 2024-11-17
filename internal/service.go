@@ -35,21 +35,44 @@ func NewService() (*Service, error) {
 	ragEmbedder := rag.NewEmbedder(openAIClient)
 	ragService := rag.NewService(db, ragEmbedder)
 
-	exp, err := utils.ReadExperience()
-	if err != nil {
-		return nil, err
-	}
-
-	err = ragService.IndexExperience(context.Background(), exp)
-	if err != nil {
-		return nil, err
-	}
-
 	s := &Service{
 		api: rest.NewAPI(ragService),
 		cfg: cfg,
 	}
+
+	err = s.Init(ragService)
+	if err != nil {
+		return nil, err
+	}
+
 	return s, nil
+}
+
+func (s *Service) Init(ragService *rag.Service) error {
+	exp, err := utils.ReadExperience()
+	if err != nil {
+		log.Error(context.Background(), fmt.Sprintf("unable to read experience: %v", err))
+		return err
+	}
+
+	err = ragService.IndexExperience(context.Background(), exp)
+	if err != nil {
+		log.Error(context.Background(), fmt.Sprintf("unable to index experience: %v", err))
+		return err
+	}
+
+	projs, err := utils.ReadProjects()
+	if err != nil {
+		log.Error(context.Background(), fmt.Sprintf("unable to read projects: %v", err))
+		return err
+	}
+
+	err = ragService.IndexProjects(context.Background(), projs)
+	if err != nil {
+		log.Error(context.Background(), fmt.Sprintf("unable to index projects: %v", err))
+		return err
+	}
+	return nil
 }
 
 func (s *Service) Run() error {
@@ -68,7 +91,7 @@ func (s *Service) Run() error {
 }
 
 func (s *Service) StartHTTP(ctx context.Context) error {
-	log.Info(ctx, fmt.Sprintf("Starting HTTP server on port %s", s.cfg.HTTPPort))
+	log.Info(ctx, fmt.Sprintf("starting http server on port %s", s.cfg.HTTPPort))
 	r := s.api.RegisterRoutes()
 	http.ListenAndServe(fmt.Sprintf(":%s", s.cfg.HTTPPort), r)
 	return nil

@@ -11,6 +11,7 @@ import (
 func main() {
 	logger := log.GetLogger(context.Background())
 	defer logger.Sync()
+	log.Info(context.Background(), "starting service")
 
 	service, err := internal.NewService()
 	if err != nil {

@@ -24,15 +24,7 @@ func NewService(db *db.LibSQL, embedder *Embedder) *Service {
 
 func (s *Service) IndexExperience(ctx context.Context, experiences []model.Experience) error {
 	for _, exp := range experiences {
-		workplace := exp.Workplace
-		position := exp.Position
-		description := exp.Description
-
-		text := workplace + " - " + position + "\n"
-		for _, desc := range description {
-			text += "- " + desc + "\n"
-		}
-
+		text := exp.String()
 		exists, err := s.db.DoesEmbeddingExist(ctx, text)
 		if err != nil {
 			log.Error(ctx, fmt.Sprintf("unable to check if embedding exists: %v", err))
@@ -48,6 +40,30 @@ func (s *Service) IndexExperience(ctx context.Context, experiences []model.Exper
 		}
 
 		if err := s.db.StoreEmbedding(ctx, text, embedding, "experience"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Service) IndexProjects(ctx context.Context, projects []model.Project) error {
+	for _, proj := range projects {
+		text := proj.String()
+		exists, err := s.db.DoesEmbeddingExist(ctx, text)
+		if err != nil {
+			log.Error(ctx, fmt.Sprintf("unable to check if embedding exists: %v", err))
+			continue
+		}
+		if exists {
+			continue
+		}
+
+		embedding, err := s.embedder.GetEmbedding(ctx, text)
+		if err != nil {
+			return err
+		}
+
+		if err := s.db.StoreEmbedding(ctx, text, embedding, "project"); err != nil {
 			return err
 		}
 	}

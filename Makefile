@@ -22,4 +22,4 @@ exportenv:
 	fi
 
 clean:
-	rm main
+	rm main && rm ./internal/db/portfolio-api.db
